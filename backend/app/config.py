@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     database_url: str = ""  # empty -> local sqlite file
     cors_origins: str = "*"
+    auth_secret: str = ""  # signs login tokens; empty -> random per process
 
     # Engine tuning
     min_signal_confidence: float = 0.6

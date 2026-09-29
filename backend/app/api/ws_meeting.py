@@ -10,6 +10,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from ..services import auth
 from ..services.demo_script import run_demo
 
 log = logging.getLogger("wisemouth.ws")
@@ -24,7 +25,11 @@ async def meeting_ws(ws: WebSocket, room_id: str):
     try:
         join = await ws.receive_json()
         name = (join.get("name") or "Guest").strip()[:40] or "Guest"
-        room = manager.get_or_create(room_id)
+        uid = auth.user_id_from_token(join.get("token"))
+        if uid is None and room_id not in manager.rooms:  # guests may join, only signed-in users may start
+            await ws.close(code=4401, reason="login required")
+            return
+        room = manager.get_or_create(room_id, owner_id=uid)
         participant = await room.join(name, ws)
         while True:
             msg = await ws.receive()

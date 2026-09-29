@@ -9,7 +9,7 @@ import asyncio
 import datetime as dt
 import logging
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text, create_engine, select
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text, create_engine, inspect, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from ..config import settings
@@ -25,9 +25,18 @@ def _now():
     return dt.datetime.now(dt.timezone.utc)
 
 
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    username: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    owner_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(200), default="")
     started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
     ended_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -89,6 +98,10 @@ def init_db() -> None:
     kwargs = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {"pool_pre_ping": True}
     _engine = create_engine(url, **kwargs)
     Base.metadata.create_all(_engine)
+    # create_all doesn't alter existing tables: add owner_id to pre-auth databases.
+    if "owner_id" not in {c["name"] for c in inspect(_engine).get_columns("conversations")}:
+        with _engine.begin() as conn:
+            conn.execute(text("ALTER TABLE conversations ADD COLUMN owner_id VARCHAR(32)"))
 
 
 def _run(fn) -> None:
@@ -117,17 +130,45 @@ def read(fn):
         return fn(s)
 
 
-def list_conversations() -> list[dict]:
+def create_user(user_id: str, username: str, password_hash: str) -> bool:
+    """False if the username is taken."""
     def q(s: Session):
-        rows = s.execute(select(Conversation).order_by(Conversation.started_at.desc()).limit(50)).scalars().all()
+        if s.execute(select(User).where(User.username == username)).scalar_one_or_none():
+            return False
+        s.add(User(id=user_id, username=username, password_hash=password_hash))
+        s.commit()
+        return True
+    try:
+        return bool(read(q))
+    except Exception:  # unique-constraint race
+        return False
+
+
+def get_user_by_name(username: str) -> dict | None:
+    def q(s: Session):
+        u = s.execute(select(User).where(User.username == username)).scalar_one_or_none()
+        return {"id": u.id, "username": u.username, "password_hash": u.password_hash} if u else None
+    return read(q)
+
+
+def get_user(user_id: str) -> dict | None:
+    def q(s: Session):
+        u = s.get(User, user_id)
+        return {"id": u.id, "username": u.username} if u else None
+    return read(q)
+
+
+def list_conversations(owner_id: str) -> list[dict]:
+    def q(s: Session):
+        rows = s.execute(select(Conversation).where(Conversation.owner_id == owner_id).order_by(Conversation.started_at.desc()).limit(50)).scalars().all()
         return [{"id": r.id, "title": r.title, "started_at": r.started_at.isoformat(), "status": r.status} for r in rows]
     return read(q) or []
 
 
-def load_conversation(cid: str) -> dict | None:
+def load_conversation(cid: str, owner_id: str) -> dict | None:
     def q(s: Session):
         c = s.get(Conversation, cid)
-        if c is None:
+        if c is None or c.owner_id != owner_id:
             return None
         segs = s.execute(select(TranscriptSegment).where(TranscriptSegment.conversation_id == cid)
                          .order_by(TranscriptSegment.timestamp_ms)).scalars().all()

@@ -31,6 +31,7 @@ class Participant:
 class Room:
     id: str
     llm: object
+    owner_id: str | None = None
     started: float = field(default_factory=time.monotonic)
     participants: dict[str, Participant] = field(default_factory=dict)
     transcript: list[dict] = field(default_factory=list)
@@ -40,7 +41,8 @@ class Room:
     def __post_init__(self):
         self.engine = SignalEngine(self.llm, self._on_signal)
         self._sweeper = asyncio.create_task(self._sweep_loop())
-        db.fire(lambda s: s.merge(db.Conversation(id=self.id, title=f"Conversation {self.id}")))
+        db.fire(lambda s: s.merge(db.Conversation(id=self.id, owner_id=self.owner_id,
+                                                        title=f"Conversation {self.id}")))
 
     # ---- time ----
     def now_ms(self) -> int:
@@ -154,8 +156,8 @@ class RoomManager:
         self.llm = llm
         self.rooms: dict[str, Room] = {}
 
-    def get_or_create(self, room_id: str) -> Room:
+    def get_or_create(self, room_id: str, owner_id: str | None = None) -> Room:
         room = self.rooms.get(room_id)
         if room is None:
-            room = self.rooms[room_id] = Room(room_id, self.llm)
+            room = self.rooms[room_id] = Room(room_id, self.llm, owner_id=owner_id)
         return room

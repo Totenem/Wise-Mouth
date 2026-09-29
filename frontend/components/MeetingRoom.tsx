@@ -6,7 +6,9 @@ import { useMeetingSocket } from "@/hooks/useMeetingSocket";
 import { useMic } from "@/hooks/useMic";
 import { Signal } from "@/lib/types";
 import { RadarPanel } from "./RadarPanel";
+import { Spinner, StatusLine } from "./Loading";
 import { SignalDrawer } from "./SignalDrawer";
+import { MeetingSkeleton } from "./Skeletons";
 import { TranscriptPanel } from "./TranscriptPanel";
 
 function Tile({ name, you, speaking, muted, stream, level }: {
@@ -43,6 +45,7 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
   const [line, setLine] = useState("");
   const [as, setAs] = useState(name);
   const [copied, setCopied] = useState(false);
+  const [ending, setEnding] = useState(false);
   const [speaking, setSpeaking] = useState<Record<string, number>>({});
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -76,6 +79,8 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
     sendJSON({ type: "say", speaker: as.trim() || name, text: line.trim() });
     setLine("");
   };
+
+  if (state.status === "connecting") return <MeetingSkeleton room={room} />;
 
   const names = new Set(state.participants.map((p) => p.name));
   const virtual = Array.from(new Set(state.transcript.map((t) => t.speaker))).filter((s) => !names.has(s));
@@ -151,11 +156,11 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
             </button>
             <button onClick={startDemo} disabled={state.demoRunning || ended || !state.connected}
               className="flex items-center gap-2 rounded-full border border-emerald-400/50 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-40">
-              <Play size={16} /> {state.demoRunning ? "Demo running..." : "Run demo conversation"}
+              {state.demoRunning ? <Spinner /> : <Play size={16} />} {state.demoRunning ? "Demo running..." : "Run demo conversation"}
             </button>
-            <button onClick={() => sendJSON({ type: "end" })} disabled={ended}
+            <button onClick={() => { setEnding(true); sendJSON({ type: "end" }); }} disabled={ended || ending}
               className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-500 disabled:opacity-40">
-              <PhoneOff size={16} /> End &amp; view report
+              {ending ? <Spinner /> : <PhoneOff size={16} />} {ending ? "Analysing final signals..." : <>End &amp; view report</>}
             </button>
           </div>
         </section>
@@ -165,6 +170,13 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
         </section>
       </div>
       <SignalDrawer signal={open} onClose={() => setOpen(null)} />
+      {ended && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-ink-950/85 backdrop-blur-sm animate-pop">
+          <Spinner size={28} className="text-emerald-400" />
+          <div className="text-lg font-semibold">Conversation ended</div>
+          <StatusLine messages={["Wrapping up the transcript...", "Building your report..."]} />
+        </div>
+      )}
     </div>
   );
 }

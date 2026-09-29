@@ -1,6 +1,7 @@
 "use client";
 import { Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import { FullPageLoader } from "@/components/Loading";
 import { MeetingRoom } from "@/components/MeetingRoom";
 
 function Inner() {
@@ -11,7 +12,7 @@ function Inner() {
 
 export default function MeetingPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-400">Joining...</div>}>
+    <Suspense fallback={<FullPageLoader messages={["Joining the room...", "Setting things up..."]} />}>
       <Inner />
     </Suspense>
   );

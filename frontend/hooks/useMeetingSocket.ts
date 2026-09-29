@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { WS_URL } from "@/lib/api";
+import { WS_URL, getToken } from "@/lib/api";
 import { Participant, Segment, ServerEvent, Signal } from "@/lib/types";
 
 export interface MeetingState {
@@ -102,14 +102,19 @@ export function useMeetingSocket(room: string, name: string) {
       wsRef.current = ws;
       ws.onopen = () => {
         retry = 1000;
-        ws.send(JSON.stringify({ type: "join", name }));
+        ws.send(JSON.stringify({ type: "join", name, token: getToken() }));
         dispatch({ t: "conn", v: true });
       };
       ws.onmessage = (m) => {
         if (typeof m.data === "string") dispatch({ t: "server", e: JSON.parse(m.data) });
       };
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         dispatch({ t: "conn", v: false });
+        if (ev.code === 4401) {  // not signed in and room doesn't exist yet
+          closedRef.current = true;
+          window.location.href = "/login";
+          return;
+        }
         if (!closedRef.current && statusRef.current !== "ended") {
           timer = setTimeout(connect, retry);
           retry = Math.min(retry * 2, 8000);

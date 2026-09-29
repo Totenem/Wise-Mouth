@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Mic, History } from "lucide-react";
+import { Mic, History, LogOut } from "lucide-react";
+import { clearSession, getToken, getUsername } from "@/lib/api";
+import { BusyLabel, FullPageLoader } from "@/components/Loading";
 
 function randomRoom() {
   return Math.random().toString(16).slice(2, 10);
@@ -12,14 +14,30 @@ export default function Landing() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [user, setUser] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"start" | "join" | null>(null);
 
   useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    setUser(getUsername());
     try {
-      setName(localStorage.getItem("wm-name") ?? "");
+      setName(localStorage.getItem("wm-name") ?? getUsername() ?? "");
     } catch {}
-  }, []);
+  }, [router]);
 
-  const go = (room: string) => {
+  const logout = () => {
+    clearSession();
+    router.replace("/login");
+  };
+
+  if (!user) return <FullPageLoader messages={["Checking your session...", "Almost ready..."]} />;
+
+  const go = (room: string, kind: "start" | "join") => {
+    if (busy) return;
+    setBusy(kind);
     const n = name.trim() || "Guest";
     try {
       localStorage.setItem("wm-name", n);
@@ -48,10 +66,13 @@ export default function Landing() {
           className="w-full rounded-lg border border-ink-600 bg-ink-800 px-4 py-2.5 outline-none focus:border-emerald-400"
         />
         <button
-          onClick={() => go(randomRoom())}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-ink-950 hover:bg-emerald-400"
+          onClick={() => go(randomRoom(), "start")}
+          disabled={!!busy}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-ink-950 hover:bg-emerald-400 disabled:opacity-60"
         >
-          <Mic size={18} /> Start Conversation
+          <BusyLabel busy={busy === "start"} busyText="Creating your room...">
+            <Mic size={18} /> Start Conversation
+          </BusyLabel>
         </button>
         <div className="flex gap-2">
           <input
@@ -61,13 +82,18 @@ export default function Landing() {
             className="min-w-0 flex-1 rounded-lg border border-ink-600 bg-ink-800 px-4 py-2.5 outline-none focus:border-emerald-400"
           />
           <button
-            disabled={!code}
-            onClick={() => go(code)}
-            className="rounded-lg border border-ink-600 px-4 py-2.5 hover:bg-ink-700 disabled:opacity-40"
+            disabled={!code || !!busy}
+            onClick={() => go(code, "join")}
+            className="flex items-center gap-2 rounded-lg border border-ink-600 px-4 py-2.5 hover:bg-ink-700 disabled:opacity-40"
           >
-            Join
+            <BusyLabel busy={busy === "join"} busyText="Joining...">
+              Join
+            </BusyLabel>
           </button>
         </div>
+        <button onClick={logout} className="flex w-full items-center justify-center gap-2 text-sm text-slate-400 hover:text-white">
+          <LogOut size={14} /> Log out ({user})
+        </button>
         <Link href="/history" className="flex items-center justify-center gap-2 pt-2 text-sm text-slate-400 hover:text-white">
           <History size={14} /> Past conversations
         </Link>

@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { getJSON } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { HttpError, getJSON } from "@/lib/api";
 import { SIGNAL_META, SIGNAL_ORDER, countSignals, fmtTs } from "@/lib/signals";
 import { Segment, Signal } from "@/lib/types";
 import { SignalChip } from "./SignalChip";
 import { SignalDrawer } from "./SignalDrawer";
+import { ReportSkeleton } from "./Skeletons";
 
 interface Conversation {
   id: string;
@@ -16,13 +18,16 @@ interface Conversation {
 }
 
 export function ReportView({ id }: { id: string }) {
+  const router = useRouter();
   const [data, setData] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<Signal | null>(null);
 
   useEffect(() => {
-    getJSON<Conversation>(`/api/conversations/${id}`).then(setData).catch(() => setError("Conversation not found."));
-  }, [id]);
+    getJSON<Conversation>(`/api/conversations/${id}`)
+      .then(setData)
+      .catch((e) => (e instanceof HttpError && e.status === 401 ? router.replace("/login") : setError("Conversation not found.")));
+  }, [id, router]);
 
   const signals = useMemo(() => [...(data?.signals ?? [])].sort((a, b) => a.timestamp_ms - b.timestamp_ms), [data]);
   const counts = useMemo(() => countSignals(signals), [signals]);
@@ -31,10 +36,10 @@ export function ReportView({ id }: { id: string }) {
   const highlight = (seg: Segment) => signals.filter((s) => s.speaker === seg.speaker && s.timestamp_ms === seg.start_ms);
 
   if (error) return <div className="p-8 text-red-300">{error}</div>;
-  if (!data) return <div className="p-8 text-slate-400">Loading report...</div>;
+  if (!data) return <ReportSkeleton />;
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <main className="mx-auto max-w-6xl animate-slidein p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-400">WiseMouth Report</div>

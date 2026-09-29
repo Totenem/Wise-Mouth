@@ -73,3 +73,13 @@ Room = any string; created on first join. One connection per participant.
 ## AssemblyAI (outbound)
 
 `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&encoding=pcm_s16le&format_turns=true`, header `Authorization: <key>`. `Turn` messages: interim while `end_of_turn=false`; final on `end_of_turn=true` **and** `turn_is_formatted=true`. Re-verify against AssemblyAI's current docs if behaviour changes; the URL is overridable via `ASSEMBLYAI_WS_URL`.
+
+## Authentication
+
+Accounts are username + password (scrypt hashed). Login returns a signed bearer token (30 days), stored in the browser's localStorage and sent as `Authorization: Bearer <token>`. Set `AUTH_SECRET` so tokens survive backend restarts.
+
+- `POST /api/auth/register`, `POST /api/auth/login` `{username, password}` -> `{token, user}`
+- `GET /api/auth/me`
+- `GET /api/conversations` and `GET /api/conversations/{id}` require a token and only return conversations owned by that user (others are 404).
+- WebSocket: the `join` message carries `token`. Signed-in users can start rooms (they become the owner); guests without a token can only join existing rooms (close code 4401 otherwise).
+- Conversations created before auth existed have no owner and are no longer listed.
