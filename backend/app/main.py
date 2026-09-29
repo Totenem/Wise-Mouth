@@ -28,7 +28,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="WiseMouth", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
+    # Strip whitespace and trailing slashes: browsers send Origin without one, so "https://x.vercel.app/" would never match.
+    allow_origins=[o.strip().rstrip("/") for o in settings.cors_origins.split(",") if o.strip()],
+    # Optional regex so Vercel preview deploys (https://<project>-<hash>-<team>.vercel.app) work without listing each one.
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_methods=["*"],
     allow_headers=["*"],
 )

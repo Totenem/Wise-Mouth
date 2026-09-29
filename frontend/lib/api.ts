@@ -1,4 +1,5 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Trailing slash stripped so `${API_URL}/path` never becomes `//path` (which breaks routing/CORS preflight).
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 export const WS_URL = API_URL.replace(/^http/, "ws");
 
 const TOKEN_KEY = "wm-token";

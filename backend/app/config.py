@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     llm_cache_path: str = "data/llm_cache.json"
 
     database_url: str = ""  # empty -> local sqlite file
-    cors_origins: str = "*"
+    cors_origins: str = "*"  # comma-separated; in prod set to the Vercel URL(s)
+    cors_origin_regex: str = ""  # e.g. https://wise-mouth.*\.vercel\.app for preview deploys
     auth_secret: str = ""  # signs login tokens; empty -> random per process
 
     # Engine tuning
