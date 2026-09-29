@@ -34,3 +34,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# WiseMouth
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/data/*.db
+backend/data/llm_cache.json
+next-env.d.ts
+*.tsbuildinfo
