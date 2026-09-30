@@ -24,7 +24,7 @@ export default function Login() {
     try {
       const s = await postJSON<Session>(`/api/auth/${mode}`, { username, password });
       setSession(s.token, s.user.username);
-      router.replace("/");
+      router.replace("/start");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reach the backend.");
     } finally {
@@ -55,7 +55,7 @@ export default function Login() {
         {error && <p className="text-sm text-red-300">{error}</p>}
         <button
           disabled={busy || !username || !password}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-ink-950 hover:bg-emerald-400 disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-40"
         >
           <BusyLabel busy={busy} busyText={mode === "login" ? "Signing you in..." : "Creating your account..."}>
             {mode === "login" ? "Log in" : "Create account"}
@@ -67,7 +67,7 @@ export default function Login() {
           setMode(mode === "login" ? "register" : "login");
           setError("");
         }}
-        className="mt-4 text-sm text-slate-400 hover:text-white"
+        className="mt-4 text-sm text-slate-400 hover:text-slate-100"
       >
         {mode === "login" ? "No account? Create one" : "Have an account? Log in"}
       </button>

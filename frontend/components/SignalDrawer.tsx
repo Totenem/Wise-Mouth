@@ -18,7 +18,7 @@ export function SignalDrawer({ signal, onClose }: { signal: Signal | null; onClo
       >
         <div className="mb-4 flex items-center justify-between">
           <SignalChip type={signal.type} count={signal.count} />
-          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-white">
+          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-100">
             <X size={18} />
           </button>
         </div>

@@ -9,6 +9,7 @@ import { Segment, Signal } from "@/lib/types";
 import { SignalChip } from "./SignalChip";
 import { SignalDrawer } from "./SignalDrawer";
 import { ReportSkeleton } from "./Skeletons";
+import { useTheme } from "@/lib/theme";
 
 interface Conversation {
   id: string;
@@ -18,6 +19,8 @@ interface Conversation {
 }
 
 export function ReportView({ id }: { id: string }) {
+  const light = useTheme() === "light";
+  const axis = light ? "#475569" : "#64748b";
   const router = useRouter();
   const [data, setData] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export function ReportView({ id }: { id: string }) {
           <div className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-400">WiseMouth Report</div>
           <h1 className="text-2xl font-bold">Conversation {id}</h1>
         </div>
-        <Link href="/" className="rounded-lg border border-ink-600 px-4 py-2 text-sm hover:bg-ink-700">
+        <Link href="/start" className="rounded-lg border border-ink-600 px-4 py-2 text-sm hover:bg-ink-700">
           New conversation
         </Link>
       </div>
@@ -70,9 +73,16 @@ export function ReportView({ id }: { id: string }) {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart} layout="vertical" margin={{ left: 30 }}>
-                <XAxis type="number" allowDecimals={false} stroke="#64748b" />
-                <YAxis type="category" dataKey="name" width={130} stroke="#64748b" fontSize={11} />
-                <Tooltip cursor={{ fill: "#1a2233" }} contentStyle={{ background: "#0c101a", border: "1px solid #263148" }} />
+                <XAxis type="number" allowDecimals={false} stroke={axis} />
+                <YAxis type="category" dataKey="name" width={130} stroke={axis} fontSize={11} />
+                <Tooltip
+                  cursor={{ fill: light ? "#e8edf5" : "#1a2233" }}
+                  contentStyle={{
+                    background: light ? "#ffffff" : "#0c101a",
+                    border: `1px solid ${light ? "#cbd5e1" : "#263148"}`,
+                    color: light ? "#0f172a" : "#e2e8f0",
+                  }}
+                />
                 <Bar dataKey="value" radius={4} isAnimationActive={false}>
                   {chart.map((c) => (
                     <Cell key={c.name} fill={c.color} />

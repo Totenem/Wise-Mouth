@@ -23,7 +23,7 @@ export default function History() {
   }, [router]);
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link href="/" className="text-sm text-slate-400 hover:text-white">
+      <Link href="/start" className="text-sm text-slate-400 hover:text-slate-100">
         &larr; Back
       </Link>
       <h1 className="mb-4 mt-2 text-2xl font-bold">Past conversations</h1>

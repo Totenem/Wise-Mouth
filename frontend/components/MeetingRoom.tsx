@@ -142,12 +142,12 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
             {!mic.active ? (
               <button onClick={mic.start} disabled={!state.caps.stt || ended}
                 title={state.caps.stt ? "Start microphone" : "Set ASSEMBLYAI_API_KEY on the backend to enable speech"}
-                className="flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-emerald-400 disabled:opacity-40">
+                className="flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-40">
                 <Mic size={16} /> Start mic
               </button>
             ) : (
               <button onClick={() => sendJSON({ type: mic.toggleMute() ? "mute" : "unmute" })}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${mic.muted ? "bg-red-500/80" : "bg-ink-700 hover:bg-ink-600"}`}>
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${mic.muted ? "bg-red-500/80 text-white" : "bg-ink-700 hover:bg-ink-600"}`}>
                 {mic.muted ? <MicOff size={16} /> : <Mic size={16} />} {mic.muted ? "Unmute" : "Mute"}
               </button>
             )}
@@ -159,7 +159,7 @@ export function MeetingRoom({ room, name }: { room: string; name: string }) {
               {state.demoRunning ? <Spinner /> : <Play size={16} />} {state.demoRunning ? "Demo running..." : "Run demo conversation"}
             </button>
             <button onClick={() => { setEnding(true); sendJSON({ type: "end" }); }} disabled={ended || ending}
-              className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-500 disabled:opacity-40">
+              className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-40">
               {ending ? <Spinner /> : <PhoneOff size={16} />} {ending ? "Analysing final signals..." : <>End &amp; view report</>}
             </button>
           </div>
